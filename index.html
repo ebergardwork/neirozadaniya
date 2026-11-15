@@ -161,7 +161,11 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(22px,4vw,30px);mar
   .printzone .sheet{border:0;padding:0;max-width:none;break-after:page}
 }
 .printzone{display:none}
+.nz .btn{color:var(--accent-ink);text-decoration:none}
+.nz .btn.ghost{color:var(--accent)}
 .single #blocks{display:none}
+.printpage .top,.printpage #panel,.printpage #blocks,.printpage #nav,.printpage .head,.printpage #foot,.printpage [data-act="new"],.printpage .variant,.printpage .card>.note{display:none!important}
+.printpage .card{border:0;background:transparent;padding:0}
 .blocks{display:flex;gap:8px;flex-wrap:wrap}
 .blocks button{border:1.5px solid var(--line);background:var(--paper);border-radius:999px;padding:8px 14px;font-weight:600;font-size:14px;min-height:42px}
 .blocks button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
@@ -307,6 +311,8 @@ var UI={
  great:{ru:"Всё получилось без ошибок!",en:"All done, no mistakes!"},
  name:{ru:"Имя",en:"Name"}, date:{ru:"Дата",en:"Date"},
  printBtn:{ru:"Распечатать",en:"Print"},
+ openSheet:{ru:"Открыть лист для печати",en:"Open sheet to print"},
+ openSheetNote:{ru:"Лист откроется в новой вкладке, там нажмите «Распечатать». Если кнопка «Распечатать» здесь не работает — используйте этот способ.",en:"The sheet opens in a new tab; press Print there. Use this if the Print button here does nothing."},
  printNote:{ru:"Печать заработает, когда генератор будет встроен в сайт. Здесь показан вид листа.",en:"Printing will work once this is embedded in the website. This is a preview of the sheet."},
  screenOnly:{ru:"Это задание работает только на экране.",en:"This activity works on screen only."},
  start:{ru:"Начать",en:"Start"}, tapHint:{ru:"Нажимай сюда",en:"Tap here"},
@@ -1244,6 +1250,8 @@ function streamStep(){
   st.timer=setTimeout(function(){st.show=false;refreshTask();st.timer=setTimeout(function(){st.i++;streamStep()},300)},t.ms);
 }
 
+function sheetURL(){var base=location.href.split("?")[0].split("#")[0];
+  return base+"?print=1&type="+encodeURIComponent(RT.id)+"&lv="+RT.lv+"&seed="+RT.seed+"&alpha="+S.alpha+"&lang="+S.lang+"&age="+S.age}
 function fixTop(s){return s.replace("%ORIG%",tr({ru:"Образец",en:"Original"}))}
 
 /* ---- графический диктант ---- */
@@ -1374,8 +1382,8 @@ function renderSheet(t,rule){
   else if(t.kind==="hatch")h+=hatchSheet(t);
   else if(t.kind==="gridpat")h+=gridpatSheet(t);
   h+='<div class="sfoot"><span>'+tr(TYPES[RT.id].name)+' · '+tr(UI.level)+' '+(RT.lv+1)+'</span><span>'+tr(UI.variant)+' '+RT.seed+'</span></div></div>';
-  var canPrint=true;
-  var top='<div class="actions">'+(canPrint?'<button class="btn" data-act="print">'+tr(UI.printBtn)+'</button>':'<p class="note">'+tr(UI.printNote)+'</p>')+'<button class="btn ghost" data-act="new">'+tr(UI.newTask)+'</button><span class="variant">'+tr(UI.variant)+' '+RT.seed+'</span></div>';
+  var canPrint=true,inFrame=window.self!==window.top,purl=sheetURL();
+  var top='<div class="actions">'+(inFrame?'<a class="btn" href="'+purl+'" target="_blank" rel="noopener">'+tr(UI.openSheet)+'</a><button class="btn ghost" data-act="print">'+tr(UI.printBtn)+'</button>':'<button class="btn" data-act="print">'+tr(UI.printBtn)+'</button>')+(inFrame?'<p class="note" style="flex-basis:100%">'+tr(UI.openSheetNote)+'</p>':'')+'<button class="btn ghost" data-act="new">'+tr(UI.newTask)+'</button><span class="variant">'+tr(UI.variant)+' '+RT.seed+'</span></div>';
   $("printzone").innerHTML=h;
   return top+'<div class="sheetwrap">'+h+'</div>';
 }
@@ -1537,7 +1545,13 @@ var rz;window.addEventListener("resize",function(){clearTimeout(rz);rz=setTimeou
 (function(){try{var q=new URLSearchParams(location.search),b=q.get("block"),l=q.get("lang");
  if(b&&BLOCKS.some(function(x){return x.id===b}))S.block=b;
  if(l==="ru"||l==="en")S.lang=l;
- if(q.get("single")==="1")document.documentElement.classList.add("single");}catch(e){}})();
+ if(q.get("single")==="1")document.documentElement.classList.add("single");
+ if(q.get("print")==="1"){var ty=q.get("type"),al=q.get("alpha"),ag=+q.get("age");
+  if(al==="ru"||al==="en")S.alpha=al; if(ag>=3&&ag<=12)S.age=ag;
+  if(TYPES[ty]&&TYPES[ty].formats.indexOf("print")>=0){var lv=clamp(+q.get("lv")||0,0,TYPES[ty].levels.length-1),sd=+q.get("seed")||newSeed();
+   BLOCKS.some(function(bk){if(bk.types.indexOf(ty)>=0){S.block=bk.id;return true}});
+   S.format="print";S.tab="tasks";S.cur=ty;startTask(ty,lv,sd,"print");document.documentElement.classList.add("printpage");
+   window.addEventListener("load",function(){setTimeout(function(){try{window.print()}catch(e){}},700)});}}}catch(e){}})();
 /* ---- высота для вставки в сайт: сообщаем окну сайта свою высоту ---- */
 (function(){if(window.parent===window)return;var last=0;function send(){var h=Math.ceil(document.body.getBoundingClientRect().height)+4;if(Math.abs(h-last)>2){last=h;try{window.parent.postMessage({nzHeight:h},"*")}catch(e){}}}
  try{new ResizeObserver(send).observe(document.body)}catch(e){setInterval(send,700)}window.addEventListener("load",send);setTimeout(send,300)})();
