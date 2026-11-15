@@ -301,7 +301,7 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(22px,4vw,30px);mar
 var store={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 
 /* ===== Зайка Нико: зимой (декабрь–февраль) или по ?winter=1 ===== */
-var WINTER=(function(){try{var w=new URLSearchParams(location.search).get("winter");if(w==="1")return true;if(w==="0")return false}catch(e){}var m=new Date().getMonth();return m===11||m===0||m===1})();
+var WINTER=(function(){try{var w=new URLSearchParams(location.search).get("winter");if(w==="1")return true;if(w==="0")return false}catch(e){}var d=new Date(),m=d.getMonth();return (m===10&&d.getDate()>=15)||m===11||m===0||m===1})();
 if(WINTER)document.documentElement.classList.add("winter");
 var CALM=store.get("nz-calm")==="1";if(CALM)document.documentElement.classList.add("calm");
 function nikoImg(pose,cls){return '<img class="'+(cls||"")+'" src="img/niko-'+pose+'.webp" alt="" decoding="async">'}
