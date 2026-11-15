@@ -244,6 +244,40 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(22px,4vw,30px);mar
 .sheet .bigpic{color:#111}
 .sheet .pboard .scell{border:1.5px solid #111}
 
+
+/* ===== Зимняя тема и зайка Нико (с 1 декабря по 28/29 февраля) ===== */
+:root.winter{--bg:#eaf2fa;--paper:#ffffff;--ink:#1d2b40;--muted:#5b6b82;--line:#d2e0ee;--accent:#2b5f99;--accent-soft:#e0ecf8;--accent-ink:#ffffff}
+@media (prefers-color-scheme: dark){:root.winter:not([data-theme="light"]){--bg:#121a26;--paper:#1b2533;--ink:#e8eef6;--muted:#9fb0c6;--line:#2c3a4e;--accent:#8fbcef;--accent-soft:#22324a;--accent-ink:#0f1722}}
+:root.winter[data-theme="dark"]{--bg:#121a26;--paper:#1b2533;--ink:#e8eef6;--muted:#9fb0c6;--line:#2c3a4e;--accent:#8fbcef;--accent-soft:#22324a;--accent-ink:#0f1722}
+:root.winter body{background-color:var(--bg);background-image:radial-gradient(circle at 12px 18px,rgba(255,255,255,.95) 1.6px,transparent 2.4px),radial-gradient(circle at 70px 64px,rgba(255,255,255,.8) 1.2px,transparent 2px),radial-gradient(circle at 110px 30px,rgba(255,255,255,.7) 1px,transparent 1.8px);background-size:140px 110px}
+@media (prefers-color-scheme: dark){:root.winter:not([data-theme="light"]) body{background-image:radial-gradient(circle at 12px 18px,rgba(255,255,255,.18) 1.6px,transparent 2.4px),radial-gradient(circle at 70px 64px,rgba(255,255,255,.12) 1.2px,transparent 2px)}}
+.calmbtn{border:1.5px solid var(--line);background:var(--paper);border-radius:12px;padding:6px 12px;min-height:40px;font-size:14px}
+.calmbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.toprt{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.niko{display:flex;align-items:flex-end;gap:12px;margin:2px 0 4px}
+.niko img{height:118px;width:auto;flex:none;transform-origin:50% 100%}
+.niko .say{position:relative;background:var(--paper);border:1.5px solid var(--line);border-radius:18px;padding:10px 14px;margin-bottom:22px;font-size:16px;line-height:1.4;max-width:46ch;min-width:0}
+.niko .say:before{content:"";position:absolute;left:-9px;bottom:14px;width:14px;height:14px;background:var(--paper);border-left:1.5px solid var(--line);border-bottom:1.5px solid var(--line);transform:rotate(45deg)}
+.niko.mini img{height:84px}.niko.mini .say{margin-bottom:12px;font-size:15px}
+.finale{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:8px 0}
+.finale .scene{display:flex;align-items:flex-end;justify-content:center;gap:4px}
+.finale .scene .bun{height:170px}.finale .scene .car{height:92px;margin-bottom:30px}
+.finale h2{margin:0;font-family:var(--display);font-size:20px}
+.finale p{margin:0;max-width:48ch}
+.harvest{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;background:var(--accent-soft);border-radius:14px;padding:8px 14px;font-weight:600}
+.harvest img{height:28px}
+@media (prefers-reduced-motion:no-preference){
+ :root.winter:not(.calm) .niko img{animation:nkbreathe 4.5s ease-in-out infinite}
+ :root.winter:not(.calm) .finale .car{animation:nkpop .7s ease-out both}
+ :root.winter:not(.calm) .finale .bun{animation:nkhop 1s ease-out .5s both}
+}
+@keyframes nkbreathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-2px) scale(1.015)}}
+@keyframes nkpop{0%{opacity:0;transform:translateY(24px) scale(.6)}70%{opacity:1;transform:translateY(-6px) scale(1.06)}100%{transform:none}}
+@keyframes nkhop{0%,100%{transform:none}40%{transform:translateY(-14px)}}
+:root.calm *{animation:none!important;transition:none!important}
+@media (max-width:520px){.niko img{height:92px}.niko .say{font-size:15px}.finale .scene .bun{height:140px}}
+@media print{.niko,.calmbtn,.finale .scene,.harvest{display:none!important}}
+.printpage .niko{display:none!important}
 </style>
 
 </head>
@@ -251,7 +285,7 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(22px,4vw,30px);mar
 <div class="nz" id="app">
   <header class="top">
     <div><div class="eyebrow" id="t-eyebrow"></div><h1 id="t-title"></h1></div>
-    <div class="seg" role="group" aria-label="Language"><button data-act="lang" data-v="ru">RU</button><button data-act="lang" data-v="en">EN</button></div>
+    <div class="toprt"><button class="calmbtn" data-act="calm" id="calmbtn" hidden></button><div class="seg" role="group" aria-label="Language"><button data-act="lang" data-v="ru">RU</button><button data-act="lang" data-v="en">EN</button></div></div>
   </header>
   <section class="panel" id="panel"></section>
   <div class="blocks" id="blocks" role="group"></div>
@@ -265,6 +299,18 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(22px,4vw,30px);mar
 (function(){
 "use strict";
 var store={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+/* ===== Зайка Нико: зимой (декабрь–февраль) или по ?winter=1 ===== */
+var WINTER=(function(){try{var w=new URLSearchParams(location.search).get("winter");if(w==="1")return true;if(w==="0")return false}catch(e){}var m=new Date().getMonth();return m===11||m===0||m===1})();
+if(WINTER)document.documentElement.classList.add("winter");
+var CALM=store.get("nz-calm")==="1";if(CALM)document.documentElement.classList.add("calm");
+function nikoImg(pose,cls){return '<img class="'+(cls||"")+'" src="img/niko-'+pose+'.webp" alt="" decoding="async">'}
+function niko(pose,ru,en,mini){if(!WINTER)return "";return '<div class="niko'+(mini?" mini":"")+'">'+nikoImg(pose)+'<div class="say">'+(S.lang==="ru"?ru:en)+'</div></div>'}
+function carrots(){return +(store.get("nz-carrots")||0)}
+function carrotWord(n){if(S.lang!=="ru")return n===1?"carrot":"carrots";var a=n%10,b=n%100;if(a===1&&b!==11)return "морковка";if(a>=2&&a<=4&&(b<12||b>14))return "морковки";return "морковок"}
+function harvest(){var n=carrots(),k=Math.min(n,10),h="";for(var i=0;i<k;i++)h+='<img src="img/niko-carrot.webp" alt="">';
+ return '<div class="harvest">'+(S.lang==="ru"?"В корзинке у Нико: ":"In Niko's basket: ")+h+(n>10?" +"+(n-10):"")+' <span>'+n+' '+carrotWord(n)+'</span></div>'}
+
 function $(id){return document.getElementById(id)}
 function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
 function rng(seed){var a=seed>>>0;return function(){a=a+0x6D2B79F5>>>0;var t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
@@ -1130,7 +1176,7 @@ function startTask(id,lv,seed,mode){
 function stopStream(){if(RT&&RT.st&&RT.st.timer){clearTimeout(RT.st.timer);RT.st.timer=null}if(RT&&RT.mem&&RT.mem.timer){clearTimeout(RT.mem.timer);RT.mem.timer=null}}
 
 function fmtTime(ms){var s=Math.round(ms/1000);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")}
-function stats(list){return '<div class="results">'+list.map(function(x){return '<div class="stat'+(x[2]?" ok":"")+'"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>'}).join("")+'</div>'}
+function stats(list){return niko("cheer","Готово! Задание пройдено до конца.","Done! You finished the whole task.",1)+'<div class="results">'+list.map(function(x){return '<div class="stat'+(x[2]?" ok":"")+'"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>'}).join("")+'</div>'}
 
 function screenCols(c){var w=Math.min(window.innerWidth,980)-70;return Math.min(c,Math.max(4,Math.floor(w/44)))}
 
@@ -1407,6 +1453,7 @@ function renderPanel(){
   $("blocks").innerHTML=BLOCKS.map(function(b){return '<button data-act="block" data-v="'+b.id+'" aria-pressed="'+(S.block===b.id)+'">'+tr(b.name)+'</button>'}).join("");
   $("nav").innerHTML=[["session","tabSession"],["tasks","tabTasks"],["moves","tabMoves"]].map(function(x){return '<button data-act="tab" data-v="'+x[0]+'" aria-pressed="'+(S.tab===x[0])+'">'+tr(UI[x[1]])+'</button>'}).join("");
   document.querySelectorAll('[data-act="lang"]').forEach(function(b){b.setAttribute("aria-pressed",b.dataset.v===S.lang)});
+  var cb=$("calmbtn");if(cb){cb.hidden=!WINTER;cb.textContent=S.lang==="ru"?"Тише":"Calm";cb.setAttribute("aria-pressed",CALM);cb.title=S.lang==="ru"?"Выключить движение картинок":"Turn off motion"}
   $("t-eyebrow").textContent=tr(UI.eyebrow);$("t-title").textContent=tr(UI.title);$("foot").textContent=tr(UI.foot);
   document.documentElement.lang=S.lang;
 }
@@ -1414,7 +1461,7 @@ function renderPanel(){
 function modeFor(id){var f=TYPES[id].formats;if(f.indexOf("screen")<0)return "print";return S.format==="print"&&f.indexOf("print")>=0?"print":"screen"}
 
 function renderTasksTab(){
-  if(!S.cur)return '<div class="types">'+blk().types.map(function(id){var T=TYPES[id];
+  if(!S.cur)return (S.format==="print"?niko("pencil","Выбери задание, распечатай лист и возьми карандаш.","Pick a task, print the sheet and grab a pencil."):niko("point","Выбери задание. Можно начать с того, что больше нравится.","Pick a task. Start with the one you like most."))+'<div class="types">'+blk().types.map(function(id){var T=TYPES[id];
     return '<button class="tcard" data-act="pick" data-v="'+id+'"><b>'+tr(T.name)+'</b><small>'+tr(T.desc)+'</small><span class="tags">'+T.formats.map(function(f){return '<span class="tag">'+tr(UI[f==="screen"?"screenTag":"printTag"])+'</span>'}).join("")+'</span></button>'}).join("")+'</div>';
   return '<section class="card">'+taskHead(true)+'<div id="taskbody">'+renderTaskBody()+'</div></section>';
 }
@@ -1423,7 +1470,7 @@ function renderMovesTab(){
   var list=gamesFor(S.age);
   if(!S.moveId||list.indexOf(S.moveId)<0&&S.moveId!=="warm")S.moveId="warm";
   var tabs='<div class="seg">'+['warm'].concat(list).map(function(g){return '<button data-act="move" data-v="'+g+'" aria-pressed="'+(S.moveId===g)+'">'+(g==="warm"?tr(UI.stWarm):tr(GAMES[g].name))+'</button>'}).join("")+'</div>';
-  return tabs+'<section class="card" style="margin-top:12px">'+moveCard(S.moveId,S.moveSeed||1)+'<div class="actions"><button class="btn ghost" data-act="move-new">'+tr(UI.otherVar)+'</button></div></section>';
+  return niko("stretch","Подвигаемся вместе! Выбери игру.","Let's move together! Pick a game.")+tabs+'<section class="card" style="margin-top:12px">'+moveCard(S.moveId,S.moveSeed||1)+'<div class="actions"><button class="btn ghost" data-act="move-new">'+tr(UI.otherVar)+'</button></div></section>';
 }
 function moveCard(id,seed){
   var r=rng(seed*13+S.age);
@@ -1455,9 +1502,12 @@ function enterStep(){var st=S.session.steps[S.session.idx];if(st.k==="task")star
 function renderSessionTab(){
   if(!S.session)buildSession();
   var s=S.session,st=s.steps[s.idx];
+  if(WINTER&&s.done)return finaleHTML();
   var labels=[tr(UI.stWarm),tr(UI.stTask)+" 1",tr(UI[blk().moveLabel]),tr(UI.stTask)+" 2",tr(UI.stFinal)];
   var h='<div class="steps">'+labels.map(function(l,i){return '<button data-act="step" data-v="'+i+'"'+(i===s.idx?' aria-current="step"':'')+(i<s.idx?' class="past"':'')+'><i>'+(i+1)+'</i>'+l+'</button>'}).join("")+'</div>';
   h+='<p class="note">'+tr(UI.sessMeta)+'</p>';
+  var NS=[["wave","Привет! Я зайка Нико. Сначала разомнёмся вместе.","Hi! I'm Niko the bunny. Let's warm up together first."],["point","Вот первое задание. Не спеши, у нас есть время.","Here's the first task. No rush, we have time."],["hop","Перерыв! Попрыгаем и подвигаемся.","Break time! Let's hop and move."],["think","Второе задание. Подумаем вместе.","Second task. Let's think it through together."],["encourage","Последнее задание — лёгкое. У тебя получится!","The last task is an easy one. You can do it!"]][s.idx];
+  h+=niko(NS[0],NS[1],NS[2]);
   h+='<section class="card">';
   if(st.k==="warm")h+=moveCard("warm",st.seed);
   else if(st.k==="move")h+=moveCard(st.id,st.seed);
@@ -1466,10 +1516,16 @@ function renderSessionTab(){
   h+='</section>';
   if(s.idx===2||s.idx===4)h+='<div class="tip"><b>'+tr(UI.tip)+'</b>'+TIPS[S.lang][(s.tip+s.idx)%TIPS.ru.length]+'</div>';
   if(s.idx===4)h+='<p class="note">'+tr(UI.sessDone)+'</p>';
-  h+='<div class="actions">'+(s.idx>0?'<button class="btn ghost" data-act="sprev">'+tr(UI.prev)+'</button>':'')+(s.idx<4?'<button class="btn" data-act="snext">'+tr(UI.next)+'</button>':'')+'<button class="btn ghost" data-act="snew" style="margin-left:auto">'+tr(UI.newSession)+'</button></div>';
+  h+='<div class="actions">'+(s.idx>0?'<button class="btn ghost" data-act="sprev">'+tr(UI.prev)+'</button>':'')+(s.idx<4?'<button class="btn" data-act="snext">'+tr(UI.next)+'</button>':(WINTER?'<button class="btn" data-act="sfinish">'+(S.lang==="ru"?"Закончить занятие":"Finish the session")+'</button>':''))+'<button class="btn ghost" data-act="snew" style="margin-left:auto">'+tr(UI.newSession)+'</button></div>';
   return h;
 }
 
+function finaleHTML(){var ru=S.lang==="ru";
+  return '<section class="card"><div class="finale"><div class="scene">'+nikoImg("basket","bun")+nikoImg("carrot","car")+'</div>'+
+   '<h2>'+(ru?"Морковка — в корзинку!":"A carrot for the basket!")+'</h2>'+
+   '<p>'+(ru?"Занятие пройдено: разминка, два задания, подвижная игра и лёгкий финал.":"Session complete: a warm-up, two tasks, a movement game and an easy finish.")+'</p>'+harvest()+'</div></section>'+
+   niko("tea","На сегодня всё. Отдыхаем, а завтра будет новое занятие.","That's all for today. Time to rest — a new session tomorrow.")+
+   '<p class="note">'+tr(UI.sessDone)+'</p><div class="actions"><button class="btn ghost" data-act="snew" style="margin-left:auto">'+tr(UI.newSession)+'</button></div>'}
 function render(){
   renderPanel();
   var v=S.tab==="session"?renderSessionTab():S.tab==="tasks"?renderTasksTab():renderMovesTab();
@@ -1537,6 +1593,8 @@ $("app").addEventListener("click",function(e){
    case "snext":S.session.idx=Math.min(4,S.session.idx+1);enterStep();render();window.scrollTo&&window.scrollTo(0,0);break;
    case "sprev":S.session.idx=Math.max(0,S.session.idx-1);enterStep();render();break;
    case "snew":buildSession();render();break;
+   case "sfinish":if(!S.session.done){S.session.done=true;store.set("nz-carrots",String(carrots()+1))}stopStream();render();window.scrollTo&&window.scrollTo(0,0);break;
+   case "calm":CALM=!CALM;store.set("nz-calm",CALM?"1":"0");document.documentElement.classList.toggle("calm",CALM);b.setAttribute("aria-pressed",CALM);break;
   }
 });
 var rz;window.addEventListener("resize",function(){clearTimeout(rz);rz=setTimeout(function(){var g=document.querySelector('[data-g]');if(g&&RT&&RT.task.cols)g.style.setProperty("--cols",screenCols(RT.task.cols))},150)});
