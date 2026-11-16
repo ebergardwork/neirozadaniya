@@ -259,6 +259,14 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(22px,4vw,30px);mar
 .vlab{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--muted)}
 .vsel{min-height:40px;max-width:220px;border:1.5px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);padding:4px 8px;font:inherit}
 @media print{.vlab{display:none!important}}
+.week{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;background:var(--paper);border:1.5px solid var(--line);border-radius:16px;padding:10px 14px;margin:8px 0}
+.week .wmsg{display:flex;flex-direction:column;gap:2px;font-size:15px;min-width:0}.week .wmsg span{font-size:13px;color:var(--muted)}
+.wdays{display:flex;gap:6px}.wd{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;color:var(--muted)}
+.wd .dot{width:30px;height:30px;border-radius:50%;border:1.5px dashed var(--line);display:grid;place-items:center;font-weight:700;color:var(--accent-ink)}
+.wd.on .dot{border:0;background:var(--accent-soft)}.wd.on .dot img{height:22px}
+:root:not(.winter) .wd.on .dot{background:var(--accent)}
+.wd.today .wn{color:var(--ink);font-weight:700}.wd.today .dot{border-color:var(--accent);border-style:solid}
+@media print{.week{display:none!important}}
 .calmbtn{border:1.5px solid var(--line);background:var(--paper);border-radius:12px;padding:6px 12px;min-height:40px;font-size:14px}
 .calmbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .toprt{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -329,6 +337,26 @@ var store={get:function(k){try{return localStorage.getItem(k)}catch(e){return nu
 var WINTER=(function(){try{var w=new URLSearchParams(location.search).get("winter");if(w==="1")return true;if(w==="0")return false}catch(e){}var d=new Date(),m=d.getMonth();return (m===10&&d.getDate()>=15)||m===11||m===0||m===1})();
 if(WINTER)document.documentElement.classList.add("winter");
 var CALM=store.get("nz-calm")==="1";if(CALM)document.documentElement.classList.add("calm");
+
+/* ===== Дни занятий: хранится только на устройстве (nz-days). Серия не сгорает: один пропущенный день её не обрывает ===== */
+function dkey(d){return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2)}
+function getDays(){try{return JSON.parse(store.get("nz-days")||"[]")}catch(e){return []}}
+function markDay(){var k=dkey(new Date()),a=getDays();if(a.indexOf(k)<0){a.push(k);if(a.length>400)a=a.slice(-400);store.set("nz-days",JSON.stringify(a))}}
+function streakInfo(){var set={},a=getDays();a.forEach(function(k){set[k]=1});var d=new Date(),n=0,miss=0,today=!!set[dkey(d)];
+ if(!today)d.setDate(d.getDate()-1);
+ for(var i=0;i<400;i++){if(set[dkey(d)]){n++;miss=0}else{miss++;if(miss>1)break}d.setDate(d.getDate()-1)}
+ return {streak:n,total:a.length,today:today}}
+function dayWord(n){if(S.lang!=="ru")return n===1?"day":"days";var a=n%10,b=n%100;if(a===1&&b!==11)return "день";if(a>=2&&a<=4&&(b<12||b>14))return "дня";return "дней"}
+function weekHTML(){var ru=S.lang==="ru",set={};getDays().forEach(function(k){set[k]=1});var now=new Date();
+ var names=ru?["Вс","Пн","Вт","Ср","Чт","Пт","Сб"]:["Su","Mo","Tu","We","Th","Fr","Sa"],h="";
+ for(var i=6;i>=0;i--){var d=new Date(now);d.setDate(now.getDate()-i);var k=dkey(d),on=!!set[k],t=i===0;
+  h+='<div class="wd'+(on?" on":"")+(t?" today":"")+'"><span class="dot">'+(on?(WINTER?'<img src="img/niko-carrot.webp" alt="">':"✓"):"")+'</span><span class="wn">'+(t?(ru?"Сег.":"Today"):names[d.getDay()])+'</span></div>'}
+ var si=streakInfo(),msg;
+ if(si.streak>=2)msg=ru?"Серия занятий: "+si.streak+" "+dayWord(si.streak)+"!":si.streak+"-day streak!";
+ else if(si.today)msg=ru?"Сегодня ты занимался — отлично!":"You practised today — great!";
+ else if(si.total)msg=ru?"Сегодня ещё можно позаниматься":"There's still time to practise today";
+ else msg=ru?"Здесь будут отмечаться дни занятий":"Your practice days will show up here";
+ return '<div class="week" aria-label="'+(ru?"Дни занятий за последнюю неделю":"Practice days in the last week")+'"><div class="wmsg"><b>'+msg+'</b>'+(si.total?'<span>'+(ru?"Всего дней с занятиями: ":"Total practice days: ")+si.total+'</span>':'')+'</div><div class="wdays">'+h+'</div></div>'}
 function nikoImg(pose,cls){return '<img class="'+(cls||"p-"+pose)+'" src="img/niko-'+pose+'.webp" alt="" decoding="async"'+(cls?'':' data-act="niko"')+'>'}
 function niko(pose,ru,en,mini){if(!WINTER)return "";return '<div class="niko'+(mini?" mini":"")+'">'+nikoImg(pose)+'<div class="say">'+(S.lang==="ru"?ru:en)+'</div></div>'}
 function carrots(){return +(store.get("nz-carrots")||0)}
@@ -1201,7 +1229,7 @@ function startTask(id,lv,seed,mode){
 function stopStream(){if(RT&&RT.st&&RT.st.timer){clearTimeout(RT.st.timer);RT.st.timer=null}if(RT&&RT.mem&&RT.mem.timer){clearTimeout(RT.mem.timer);RT.mem.timer=null}}
 
 function fmtTime(ms){var s=Math.round(ms/1000);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")}
-function stats(list){return niko("cheer","Готово! Задание пройдено до конца.","Done! You finished the whole task.",1)+'<div class="results">'+list.map(function(x){return '<div class="stat'+(x[2]?" ok":"")+'"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>'}).join("")+'</div>'}
+function stats(list){markDay();return niko("cheer","Готово! Задание пройдено до конца.","Done! You finished the whole task.",1)+'<div class="results">'+list.map(function(x){return '<div class="stat'+(x[2]?" ok":"")+'"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>'}).join("")+'</div>'}
 
 function screenCols(c){var w=Math.min(window.innerWidth,980)-70;return Math.min(c,Math.max(4,Math.floor(w/44)))}
 
@@ -1285,7 +1313,7 @@ function renderTaskBody(){
   if(needDone)act+='<button class="btn" data-act="done">'+tr(UI.done)+'</button>';
   act+='<button class="btn'+(needDone?" ghost":"")+'" data-act="new">'+tr(UI.newTask)+'</button>';
   if(t.kind!=="stream")act+='<button class="btn ghost" data-act="again">'+tr(UI.again)+'</button>';
-  act+='<span class="variant">'+tr(UI.variant)+' '+RT.seed+'</span></div>';
+  act+='</div>';
   return h+act;
 }
 
@@ -1452,7 +1480,7 @@ function renderSheet(t,rule){
   else if(t.kind==="trace")h+=traceSVG(t,true);
   else if(t.kind==="hatch")h+=hatchSheet(t);
   else if(t.kind==="gridpat")h+=gridpatSheet(t);
-  h+='<div class="sfoot"><span>'+tr(TYPES[RT.id].name)+' · '+tr(UI.level)+' '+(RT.lv+1)+'</span><span>'+tr(UI.variant)+' '+RT.seed+'</span></div></div>';
+  h+='<div class="sfoot"><span>'+tr(TYPES[RT.id].name)+' · '+tr(UI.level)+' '+(RT.lv+1)+'</span></div></div>';
   var canPrint=true,inFrame=window.self!==window.top,purl=sheetURL();
   var top='<div class="actions">'+(inFrame?'<a class="btn" href="'+purl+'" target="_blank" rel="noopener">'+tr(UI.openSheet)+'</a><button class="btn ghost" data-act="print">'+tr(UI.printBtn)+'</button>':'<button class="btn" data-act="print">'+tr(UI.printBtn)+'</button>')+(inFrame?'<p class="note" style="flex-basis:100%">'+tr(UI.openSheetNote)+'</p>':'')+'<button class="btn ghost" data-act="new">'+tr(UI.newTask)+'</button><span class="variant">'+tr(UI.variant)+' '+RT.seed+'</span></div>';
   $("printzone").innerHTML=h;
@@ -1530,7 +1558,7 @@ function renderSessionTab(){
   if(WINTER&&s.done)return finaleHTML();
   var labels=[tr(UI.stWarm),tr(UI.stTask)+" 1",tr(UI[blk().moveLabel]),tr(UI.stTask)+" 2",tr(UI.stFinal)];
   var h='<div class="steps">'+labels.map(function(l,i){return '<button data-act="step" data-v="'+i+'"'+(i===s.idx?' aria-current="step"':'')+(i<s.idx?' class="past"':'')+'><i>'+(i+1)+'</i>'+l+'</button>'}).join("")+'</div>';
-  h+='<p class="note">'+tr(UI.sessMeta)+'</p>';
+  h+='<p class="note">'+tr(UI.sessMeta)+'</p>'+weekHTML();
   var NS=[["wave","Привет! Я зайка Нико. Сначала разомнёмся вместе.","Hi! I'm Niko the bunny. Let's warm up together first."],["point","Вот первое задание. Не спеши, у нас есть время.","Here's the first task. No rush, we have time."],["hop","Перерыв! Попрыгаем и подвигаемся.","Break time! Let's hop and move."],["think","Второе задание. Подумаем вместе.","Second task. Let's think it through together."],["encourage","Последнее задание — лёгкое. У тебя получится!","The last task is an easy one. You can do it!"]][s.idx];
   h+=niko(NS[0],NS[1],NS[2]);
   h+='<section class="card">';
@@ -1548,7 +1576,7 @@ function renderSessionTab(){
 function finaleHTML(){var ru=S.lang==="ru";
   return '<section class="card"><div class="finale"><div class="scene">'+nikoImg("basket","bun")+nikoImg("carrot","car")+'</div>'+
    '<h2>'+(ru?"Морковка — в корзинку!":"A carrot for the basket!")+'</h2>'+
-   '<p>'+(ru?"Занятие пройдено: разминка, два задания, подвижная игра и лёгкий финал.":"Session complete: a warm-up, two tasks, a movement game and an easy finish.")+'</p>'+harvest()+'</div></section>'+
+   '<p>'+(ru?"Занятие пройдено: разминка, два задания, подвижная игра и лёгкий финал.":"Session complete: a warm-up, two tasks, a movement game and an easy finish.")+'</p>'+harvest()+'</div></section>'+weekHTML()+
    niko("tea","На сегодня всё. Отдыхаем, а завтра будет новое занятие.","That's all for today. Time to rest — a new session tomorrow.")+
    '<p class="note">'+tr(UI.sessDone)+'</p><div class="actions"><button class="btn ghost" data-act="snew" style="margin-left:auto">'+tr(UI.newSession)+'</button></div>'}
 function render(){
@@ -1655,7 +1683,7 @@ $("app").addEventListener("click",function(e){
    case "snext":S.session.idx=Math.min(4,S.session.idx+1);enterStep();render();window.scrollTo&&window.scrollTo(0,0);break;
    case "sprev":S.session.idx=Math.max(0,S.session.idx-1);enterStep();render();break;
    case "snew":buildSession();render();break;
-   case "sfinish":if(!S.session.done){S.session.done=true;S.session.fresh=true;store.set("nz-carrots",String(carrots()+1))}stopStream();render();window.scrollTo&&window.scrollTo(0,0);break;
+   case "sfinish":markDay();if(!S.session.done){S.session.done=true;S.session.fresh=true;store.set("nz-carrots",String(carrots()+1))}stopStream();render();window.scrollTo&&window.scrollTo(0,0);break;
    case "niko":b.classList.remove("tap");void b.offsetWidth;b.classList.add("tap");break;
    case "calm":CALM=!CALM;store.set("nz-calm",CALM?"1":"0");document.documentElement.classList.toggle("calm",CALM);b.setAttribute("aria-pressed",CALM);break;
   }
