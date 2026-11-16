@@ -255,6 +255,10 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(22px,4vw,30px);mar
 :root.winter[data-theme="dark"]{--bg:#121a26;--paper:#1b2533;--ink:#e8eef6;--muted:#9fb0c6;--line:#2c3a4e;--accent:#8fbcef;--accent-soft:#22324a;--accent-ink:#0f1722}
 :root.winter body{background-color:var(--bg);background-image:radial-gradient(circle at 12px 18px,rgba(255,255,255,.95) 1.6px,transparent 2.4px),radial-gradient(circle at 70px 64px,rgba(255,255,255,.8) 1.2px,transparent 2px),radial-gradient(circle at 110px 30px,rgba(255,255,255,.7) 1px,transparent 1.8px);background-size:140px 110px}
 @media (prefers-color-scheme: dark){:root.winter:not([data-theme="light"]) body{background-image:radial-gradient(circle at 12px 18px,rgba(255,255,255,.18) 1.6px,transparent 2.4px),radial-gradient(circle at 70px 64px,rgba(255,255,255,.12) 1.2px,transparent 2px)}}
+.vlab[hidden]{display:none}
+.vlab{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--muted)}
+.vsel{min-height:40px;max-width:220px;border:1.5px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);padding:4px 8px;font:inherit}
+@media print{.vlab{display:none!important}}
 .calmbtn{border:1.5px solid var(--line);background:var(--paper);border-radius:12px;padding:6px 12px;min-height:40px;font-size:14px}
 .calmbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .toprt{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -706,7 +710,7 @@ TYPES.diffs={
   var ref='<div class="refgrid" style="--cols:'+P.n+'">'+a.map(function(o){return '<span class="rcell">'+fig(o)+'</span>'}).join("")+'</div>';
   return {kind:"cells",cols:P.n,items:b.map(fig),expect:b.map(function(o,i){return idx.indexOf(i)>=0?"circle":null}),tools:["circle"],dividers:{},samples:"",
    top:'<div class="pairlabel">%ORIG%</div>'+ref,topScreenLabel:{ru:"Найди отличия здесь",en:"Find the differences here"},big:true,
-   rule:function(l){return l==="ru"?"Сравни две картинки и найди на второй "+P.d+" отличия. Обведи их.":"Compare the two pictures and find "+P.d+" differences in the second one. Circle them."}};
+   rule:function(l){return l==="ru"?"Сравни две картинки и найди на второй "+P.d+(P.d>=5?" отличий":" отличия")+". Обведи их.":"Compare the two pictures and find "+P.d+" differences in the second one. Circle them."}};
  }
 };
 
@@ -1207,7 +1211,7 @@ function renderTaskBody(){
   var rule=(printing&&t.printRule?t.printRule:t.rule)(L);
   if(printing)return renderSheet(t,rule);
   h+='<div class="rule">'+(t.samples?'<div class="samples">'+t.samples+'</div>':'')+'<p>'+rule+'</p></div>';
-  h+='<div class="actions"><button class="btn ghost" data-act="speak">'+ICON_SPK+tr(UI.listen)+'</button>';
+  h+='<div class="actions"><button class="btn ghost" data-act="speak">'+ICON_SPK+tr(UI.listen)+'</button>'+voiceSelect();
   if(t.kind==="cells"&&t.tools.length>1)h+='<div class="tools" role="group">'+t.tools.map(function(m){return '<button data-act="tool" data-v="'+m+'" aria-pressed="'+(RT.tool===m)+'">'+boxed("",m)+tr(UI[m])+'</button>'}).join("")+'</div>';
   if(t.kind==="place")h+='<div class="tools" role="group">'+t.objs.map(function(o){return '<button data-act="pal" data-v="'+o.s+'" aria-pressed="'+(RT.pal===o.s)+'">'+boxed(fig({s:o.s,c:SHCOL[o.s]}))+'</button>'}).join("")+'</div>';
   if(t.kind==="trace")h+='<button class="btn ghost" data-act="tclear">'+tr(UI.clear)+'</button>';
@@ -1555,7 +1559,44 @@ function render(){
 }
 
 /* ================= действия ================= */
-function speak(){try{var u=new SpeechSynthesisUtterance(RT.task.rule(S.lang));u.lang=S.lang==="ru"?"ru-RU":"en-US";u.rate=.9;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+/* ---- голос: выбираем лучший голос, установленный на устройстве (текст никуда не отправляется, кроме голосов Google в Chrome) ---- */
+var VOICES=[];function loadVoices(){try{VOICES=speechSynthesis.getVoices()||[]}catch(e){}}
+try{loadVoices();speechSynthesis.addEventListener("voiceschanged",function(){loadVoices();refreshVoiceSelects()})}catch(e){}
+function curLang(){return S.lang==="ru"?"ru":"en"}
+function pickedVoice(lang){var nm=store.get("nz-voice-"+lang),list=voicesFor(lang);if(nm){for(var i=0;i<list.length;i++)if(list[i].name===nm)return list[i]}return list[0]||null}
+function voiceOptions(){var lang=curLang(),list=voicesFor(lang).filter(function(v){return voiceScore(v,lang)>-999}).slice(0,12),cur=pickedVoice(lang);
+ if(!list.length)return "";
+ return list.map(function(v){return '<option value="'+v.name.replace(/"/g,"&quot;")+'"'+(cur&&cur.name===v.name?" selected":"")+'>'+v.name.replace(/</g,"")+'</option>'}).join("")}
+function voiceSelect(){if(audioId(curLang()))return "";var o=voiceOptions();return '<label class="vlab"'+(o?'':' hidden')+'><span>'+(S.lang==="ru"?"Голос":"Voice")+'</span><select class="vsel">'+o+'</select></label>'}
+function refreshVoiceSelects(){var o=voiceOptions();document.querySelectorAll(".vsel").forEach(function(sel){sel.innerHTML=o;sel.parentNode.hidden=!o})}
+document.addEventListener("change",function(e){if(e.target&&e.target.classList&&e.target.classList.contains("vsel")){store.set("nz-voice-"+curLang(),e.target.value);speak()}});
+var BADV=/^(albert|bad news|bahh|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|fred|junior|ralph|kathy|princess|deranged|hysterical|grandma|grandpa|eddy|flo|reed|rocko|sandy|shelley)\b/i;
+var GOODV={en:/samantha|ava|allison|susan|zoe|serena|daniel|karen|moira|tessa|kate|oliver|aria|jenny|guy|libby|sonia|ryan|natasha|william/i,ru:/milena|милена|yuri|юрий|katya|катя|svetlana|dmitry|dariya|светлана|дмитрий/i};
+function voiceScore(v,lang){var n=v.name||"",sc=0;
+ if(BADV.test(n))return -999;
+ if(/premium|enhanced|natural|neural|улучш|высокого/i.test(n))sc+=60;
+ if(/siri/i.test(n))sc+=50;
+ if(GOODV[lang].test(n))sc+=35;
+ if(/google/i.test(n))sc+=30;
+ if(v.localService)sc+=8;
+ if(lang==="en"&&/en[-_](gb|us)/i.test(v.lang))sc+=4;
+ if(v.default)sc+=2;
+ return sc}
+function voicesFor(lang){if(!VOICES.length)loadVoices();
+ return VOICES.filter(function(v){return (v.lang||"").toLowerCase().indexOf(lang)===0}).sort(function(a,b){return voiceScore(b,lang)-voiceScore(a,lang)})}
+/* ---- записи голоса Марины: audio/ru/NN.mp3, audio/en/NN.mp3; если записи нет — синтез ---- */
+var AUDIO_RU={"Найди кружки по порядку: от самого маленького до самого большого.": 6, "Найди числа по порядку от 1 до 9.": 7, "Найди числа по порядку от 1 до 16.": 8, "Найди числа по порядку от 1 до 25.": 9, "Найди буквы по алфавиту: А, Б, В…": 10, "Чередуй: число — буква. 1, А, 2, Б, 3, В…": 11, "Чередуй цвета: тёмные числа по возрастанию, красные — по убыванию. 1 тёмное, 10 красное, 2 тёмное, 9 красное…": 12, "Посмотри на ряд и найди, что будет дальше.": 13, "Посмотри на ключ и отметь каждую фигуру так же.": 14, "Отметь каждую фигуру знаком из ключа. Посередине ключ поменяется — будь внимателен!": 15, "Найди все фигуры, точно такие же, как образец, и обведи их.": 16, "Проследи глазами каждую линию. Нажми на номер слева, а потом на фигуру, где линия заканчивается.": 17, "Нажимай, только когда увидишь звёздочку.": 18, "Нажимай на всё, кроме звёздочки.": 19, "Сначала нажимай только на звёздочку. Потом правило поменяется!": 20, "Нажимай на звёздочку, только если перед ней был кружок.": 21, "Какая фигура спряталась за линиями? Найди её внизу и обведи.": 22, "Какие фигуры спрятались на картинке? Найди их внизу и обведи.": 23, "Сравни две картинки и найди на второй 2 отличия. Обведи их.": 24, "Сравни две картинки и найди на второй 3 отличия. Обведи их.": 25, "Сравни две картинки и найди на второй 4 отличия. Обведи их.": 26, "Сравни две картинки и найди на второй 5 отличий. Обведи их.": 27, "Сравни две картинки и найди на второй 6 отличий. Обведи их.": 28, "Расставь фигуры на поле так, как сказано. Выбери фигуру, а потом нажми на клетку.": 29, "Посмотри на образец и нарисуй такой же узор. Нажимай на две соседние точки, чтобы провести линию.": 30, "Нарисуй узор зеркально, как отражение в зеркале. Нажимай на две соседние точки, чтобы провести линию.": 31, "Рисуй по команде: число — сколько клеток, стрелка — куда. Нажимай на стрелки внизу.": 32, "Запомни фигуры. Потом одна спрячется — найди, какая.": 33, "Запомни фигуры. Потом две спрячутся — найди, какие.": 34, "Запомни, как стоят фигуры. Потом две поменяются местами — нажми на них.": 35, "Запомни, какие клетки загорелись, и нажми на них.": 36, "Запомни, какие клетки загорелись и в каком порядке. Потом нажми на них по порядку.": 37, "Запомни фигуры. Потом найди их среди других и нажми на них.": 38, "В каждом ряду найди лишнюю фигуру и обведи её. Объясни, почему она лишняя.": 39, "Посмотри на ряды и столбцы. Какая фигура должна стоять в пустой клетке?": 40, "Разложи фигуры по цвету. Нажми на фигуру, а потом на коробку.": 41, "Разложи фигуры по форме. Нажми на фигуру, а потом на коробку.": 42, "Разложи фигуры: большие — к большим, маленькие — к маленьким. Нажми на фигуру, а потом на коробку.": 43, "В каждой коробке уже лежит одна фигура. Догадайся, по какому правилу раскладывать, и разложи остальные. Нажми на фигуру, а потом на коробку.": 44, "Проведи пальцем по каждой дорожке от точки до звёздочки, не выходя за края.": 45, "Обведи пальцем каждую линию по пунктиру.": 46, "Заштрихуй каждую фигуру так, как показано в квадратике рядом. Не выходи за контур.": 47, "Посмотри на начало узора и продолжи его до конца строки.": 48};var AUDIO_EN={"Find the circles in order, from the smallest to the biggest.": 6, "Find the numbers in order from 1 to 9.": 7, "Find the numbers in order from 1 to 16.": 8, "Find the numbers in order from 1 to 25.": 9, "Find the letters in alphabetical order: A, B, C…": 10, "Take turns: number, letter. 1, A, 2, B, 3, C…": 11, "Alternate colours: dark numbers going up, red numbers going down. Dark 1, red 10, dark 2, red 9…": 12, "Look at the row and find what comes next.": 13, "Look at the key and mark every shape the same way.": 14, "Mark each shape with its sign from the key. Halfway the key changes, so watch out!": 15, "Find every shape exactly like the sample and circle it.": 16, "Follow each line with your eyes. Tap a number on the left, then the shape where the line ends.": 17, "Tap only when you see a star.": 18, "Tap everything except the star.": 19, "First tap only the star. Then the rule will change!": 20, "Tap the star only if a circle came right before it.": 21, "Which shape is hiding behind the lines? Find it below and circle it.": 22, "Which shapes are hiding in the picture? Find them below and circle them.": 23, "Compare the two pictures and find 2 differences in the second one. Circle them.": 24, "Compare the two pictures and find 3 differences in the second one. Circle them.": 25, "Compare the two pictures and find 4 differences in the second one. Circle them.": 26, "Compare the two pictures and find 5 differences in the second one. Circle them.": 27, "Compare the two pictures and find 6 differences in the second one. Circle them.": 28, "Place the shapes as described. Pick a shape, then tap a square.": 29, "Look at the sample and draw the same pattern. Tap two neighbouring dots to draw a line.": 30, "Draw the pattern as a mirror image. Tap two neighbouring dots to draw a line.": 31, "Follow the directions: the number says how many squares, the arrow says which way. Tap the arrows below.": 32, "Remember the shapes. Then one will hide: find which one.": 33, "Remember the shapes. Then two will hide: find which ones.": 34, "Remember the order. Then two shapes swap places: tap them.": 35, "Remember which squares light up, then tap them.": 36, "Remember which squares light up and in what order. Then tap them in order.": 37, "Remember the shapes. Then find them among the others and tap them.": 38, "In each row find the shape that doesn't belong and circle it. Say why.": 39, "Look at the rows and columns. Which shape goes in the empty square?": 40, "Sort the shapes by colour. Tap a shape, then a box.": 41, "Sort the shapes by shape. Tap a shape, then a box.": 42, "Sort the shapes: big with big, small with small. Tap a shape, then a box.": 43, "Each box already has one shape. Work out the rule and sort the rest. Tap a shape, then a box.": 44, "Trace each path with your finger from the dot to the star without going over the edges.": 45, "Trace each dotted line with your finger.": 46, "Shade each shape the way the little square next to it shows. Stay inside the outline.": 47, "Look at how the pattern starts and continue it to the end of the line.": 48};
+var PROBA_AUDIO=[1,1,1,2,3,4,4,5],CUR_AUDIO=null;
+function audioId(lang){try{if(RT.id==="proba")return PROBA_AUDIO[RT.lv]||0;var t=RT.task.rule(S.lang);return (lang==="ru"?AUDIO_RU:AUDIO_EN)[t]||0}catch(e){return 0}}
+function stopVoice(){try{speechSynthesis.cancel()}catch(e){}if(CUR_AUDIO){try{CUR_AUDIO.pause()}catch(e){}CUR_AUDIO=null}}
+function speak(){var lang=S.lang==="ru"?"ru":"en",id=audioId(lang);stopVoice();
+ if(id){var a=new Audio("audio/"+lang+"/"+(id<10?"0":"")+id+".mp3");CUR_AUDIO=a;a.onerror=function(){if(CUR_AUDIO===a){CUR_AUDIO=null;speakSynth()}};var pr=a.play();if(pr&&pr.catch)pr.catch(function(err){if(err&&err.name!=="AbortError"&&CUR_AUDIO===a){CUR_AUDIO=null;speakSynth()}});return}
+ speakSynth()}
+function speakSynth(){try{var lang=S.lang==="ru"?"ru":"en",text=RT.task.rule(S.lang).replace(/…/g,"."),list=voicesFor(lang),pv=pickedVoice(lang);if(pv){list=[pv].concat(list.filter(function(x){return x!==pv}))}
+ function say(v,retry){var u=new SpeechSynthesisUtterance(text);u.lang=v?v.lang:(lang==="ru"?"ru-RU":"en-GB");if(v)u.voice=v;u.rate=lang==="ru"?.92:.88;u.pitch=1;
+  if(retry)u.onerror=function(){var loc=list.filter(function(x){return x.localService&&x!==v})[0];if(loc)say(loc,false)};
+  speechSynthesis.speak(u)}
+ speechSynthesis.cancel();say(list[0]||null,list[0]&&!list[0].localService)}catch(e){}}
 function wobble(el){if(!el)return;el.classList.remove("wob");void el.offsetWidth;el.classList.add("wob")}
 function regenTaskSameType(seed){var id=RT.id,lv=RT.lv,mode=RT.mode;startTask(id,lv,seed,mode);if(S.tab==="session"){S.session.steps[S.session.idx].seed=seed;S.session.steps[S.session.idx].lv=lv}}
 
