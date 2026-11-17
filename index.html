@@ -418,8 +418,8 @@ var UI={
  cross:{ru:"Зачеркнуть",en:"Cross out"}, circle:{ru:"Обвести",en:"Circle"},
  dot:{ru:"Точка",en:"Dot"}, vline:{ru:"Палочка",en:"Line"}, check:{ru:"Галочка",en:"Tick"},
  next:{ru:"Дальше →",en:"Next →"}, prev:{ru:"← Назад",en:"← Back"}, newSession:{ru:"Собрать другое занятие",en:"Build another session"},
- sessMeta:{ru:"Около 15 минут · разминка, два разных задания, игра в движении и финал на успехе",en:"About 15 minutes · warm-up, two different tasks, a movement game and an easy finish"},
- stWarm:{ru:"Разминка",en:"Warm-up"}, stTask:{ru:"Задание",en:"Task"}, stMove:{ru:"Пауза в движении",en:"Movement break"}, stFinal:{ru:"Финал",en:"Finish"},
+ sessMeta:{ru:"Около 15 минут · разминка, два разных задания, игра в движении и финал на успехе",en:"About 15 minutes · warm-up, two different tasks, a movement game and an easy finish"}, sessMeta7:{ru:"Около 20 минут · разминка, три разных задания, игра в движении и финал на успехе",en:"About 20 minutes · warm-up, three different tasks, a movement game and an easy finish"}, sessMeta9:{ru:"Около 20 минут · разминка, три разных задания, игра в движении и финал на успехе; потом по желанию бонус",en:"About 20 minutes · warm-up, three different tasks, a movement game and an easy finish; then an optional bonus"},
+ stBonus:{ru:"Бонус",en:"Bonus"}, bonusNote:{ru:"Бонус по желанию: можно попробовать, а можно закончить на этом.",en:"Optional bonus: you can try it, or stop here."}, extraNote:{ru:"Это задание из другой области, чтобы нагрузка была разной.",en:"This task comes from a different area, so the load is varied."}, stWarm:{ru:"Разминка",en:"Warm-up"}, stTask:{ru:"Задание",en:"Task"}, stMove:{ru:"Пауза в движении",en:"Movement break"}, stFinal:{ru:"Финал",en:"Finish"},
  finalNote:{ru:"Лёгкое задание, чтобы закончить занятие на успехе.",en:"An easy task to finish the session on a success."},
  sessDone:{ru:"Занятие закончено. Отметьте, что получилось лучше, чем в прошлый раз.",en:"Session complete. Notice what went better than last time."},
  howTo:{ru:"Как играть",en:"How to play"}, today:{ru:"Сегодня",en:"Today"}, forMom:{ru:"Для мамы",en:"For you"},
@@ -1547,8 +1547,17 @@ function buildSession(){
   var easyType=pool.filter(function(id){return id!==b})[Math.floor(r()*(pool.length-1))]||a;
   var le=clamp(Math.min(levelFor(easyType,S.age,S.diff),la)-1,0,TYPES[easyType].levels.length-1);
   S.recent=[a,b].concat(S.recent.filter(function(x){return x!==a&&x!==b})).slice(0,4);store.set("nz-recent",JSON.stringify(S.recent));
-  S.session={idx:0,tip:Math.floor(r()*TIPS.ru.length),steps:[
-   {k:"warm",seed:newSeed()},{k:"task",id:a,lv:la,seed:newSeed()},{k:"move",id:g,seed:newSeed()},{k:"task",id:b,lv:lb,seed:newSeed()},{k:"task",id:easyType,lv:le,seed:newSeed(),final:1}]};
+  var steps=[{k:"warm",seed:newSeed()},{k:"task",id:a,lv:la,seed:newSeed()},{k:"move",id:g,seed:newSeed()},{k:"task",id:b,lv:lb,seed:newSeed()}];
+  // с 7 лет: ещё одно задание из другой функции (блока), чем функция дня
+  var used=[a,b,easyType];
+  function otherPool(){var cur=blk().id,fmt=S.format==="print"?"print":"screen",out=[];
+    BLOCKS.forEach(function(B){if(B.id===cur)return;B.types.forEach(function(id){if(used.indexOf(id)<0&&out.indexOf(id)<0&&TYPES[id]&&TYPES[id].formats.indexOf(fmt)>=0)out.push(id)})});return out}
+  if(S.age>=7){var op=otherPool();if(op.length){var ex=pick(r,op);used.push(ex);steps.push({k:"task",id:ex,lv:levelFor(ex,S.age,S.diff),seed:newSeed(),extra:1})}}
+  steps.push({k:"task",id:easyType,lv:le,seed:newSeed(),final:1});
+  // с 9 лет: необязательный бонус после финала, на уровень сложнее
+  if(S.age>=9){var bp=otherPool().filter(function(id){return used.indexOf(id)<0});if(bp.length){var bo=pick(r,bp);steps.push({k:"task",id:bo,lv:clamp(levelFor(bo,S.age,S.diff)+1,0,TYPES[bo].levels.length-1),seed:newSeed(),bonus:1})}}
+  var fi=0;steps.forEach(function(x,i){if(x.final)fi=i});
+  S.session={idx:0,finalIdx:fi,tip:Math.floor(r()*TIPS.ru.length),steps:steps};
   enterStep();
 }
 function enterStep(){var st=S.session.steps[S.session.idx];if(st.k==="task")startTask(st.id,st.lv,st.seed,modeFor(st.id));else stopStream()}
@@ -1556,27 +1565,29 @@ function renderSessionTab(){
   if(!S.session)buildSession();
   var s=S.session,st=s.steps[s.idx];
   if(WINTER&&s.done)return finaleHTML();
-  var labels=[tr(UI.stWarm),tr(UI.stTask)+" 1",tr(UI[blk().moveLabel]),tr(UI.stTask)+" 2",tr(UI.stFinal)];
+  var tn=0,labels=s.steps.map(function(x){if(x.k==="warm")return tr(UI.stWarm);if(x.k==="move")return tr(UI[blk().moveLabel]);if(x.final)return tr(UI.stFinal);if(x.bonus)return tr(UI.stBonus);tn++;return tr(UI.stTask)+" "+tn});
   var h='<div class="steps">'+labels.map(function(l,i){return '<button data-act="step" data-v="'+i+'"'+(i===s.idx?' aria-current="step"':'')+(i<s.idx?' class="past"':'')+'><i>'+(i+1)+'</i>'+l+'</button>'}).join("")+'</div>';
-  h+='<p class="note">'+tr(UI.sessMeta)+'</p>'+weekHTML();
-  var NS=[["wave","Привет! Я зайка Нико. Сначала разомнёмся вместе.","Hi! I'm Niko the bunny. Let's warm up together first."],["point","Вот первое задание. Не спеши, у нас есть время.","Here's the first task. No rush, we have time."],["hop","Перерыв! Попрыгаем и подвигаемся.","Break time! Let's hop and move."],["think","Второе задание. Подумаем вместе.","Second task. Let's think it through together."],["encourage","Последнее задание — лёгкое. У тебя получится!","The last task is an easy one. You can do it!"]][s.idx];
+  h+='<p class="note">'+tr(S.age>=9?UI.sessMeta9:S.age>=7?UI.sessMeta7:UI.sessMeta)+'</p>'+weekHTML();
+  var NSall={warm:["wave","Привет! Я зайка Нико. Сначала разомнёмся вместе.","Hi! I'm Niko the bunny. Let's warm up together first."],t1:["point","Вот первое задание. Не спеши, у нас есть время.","Here's the first task. No rush, we have time."],move:["hop","Перерыв! Попрыгаем и подвигаемся.","Break time! Let's hop and move."],t2:["think","Второе задание. Подумаем вместе.","Second task. Let's think it through together."],extra:["stretch","Ещё одно задание, и оно необычное. Попробуем?","One more task, and a different kind. Shall we try?"],final:["encourage","Последнее задание — лёгкое. У тебя получится!","The last task is an easy one. You can do it!"],bonus:["cheer","Бонус! Хочешь — попробуем, не хочешь — отдохнём.","Bonus! Want to try it, or shall we rest?"]};
+  var kind=st.k==="warm"?"warm":st.k==="move"?"move":st.final?"final":st.bonus?"bonus":st.extra?"extra":(s.steps.slice(0,s.idx).filter(function(x){return x.k==="task"}).length===0?"t1":"t2");
+  var NS=NSall[kind];
   h+=niko(NS[0],NS[1],NS[2]);
   h+='<section class="card">';
   if(st.k==="warm")h+=moveCard("warm",st.seed);
   else if(st.k==="move")h+=moveCard(st.id,st.seed);
   else{if(!RT||RT.seed!==st.seed)startTask(st.id,st.lv,st.seed,modeFor(st.id));
-    h+=(st.final?'<p class="note">'+tr(UI.finalNote)+'</p>':'')+taskHead(false)+'<div id="taskbody">'+renderTaskBody()+'</div>'}
+    h+=(st.final?'<p class="note">'+tr(UI.finalNote)+'</p>':'')+(st.extra?'<p class="note">'+tr(UI.extraNote)+'</p>':'')+(st.bonus?'<p class="note">'+tr(UI.bonusNote)+'</p>':'')+taskHead(false)+'<div id="taskbody">'+renderTaskBody()+'</div>'}
   h+='</section>';
-  if(s.idx===2||s.idx===4)h+='<div class="tip"><b>'+tr(UI.tip)+'</b>'+TIPS[S.lang][(s.tip+s.idx)%TIPS.ru.length]+'</div>';
-  if(s.idx===4)h+='<p class="note">'+tr(UI.sessDone)+'</p>';
-  h+='<div class="actions">'+(s.idx>0?'<button class="btn ghost" data-act="sprev">'+tr(UI.prev)+'</button>':'')+(s.idx<4?'<button class="btn" data-act="snext">'+tr(UI.next)+'</button>':(WINTER?'<button class="btn" data-act="sfinish">'+(S.lang==="ru"?"Закончить занятие":"Finish the session")+'</button>':''))+'<button class="btn ghost" data-act="snew" style="margin-left:auto">'+tr(UI.newSession)+'</button></div>';
+  if(s.idx===2||s.idx===s.finalIdx)h+='<div class="tip"><b>'+tr(UI.tip)+'</b>'+TIPS[S.lang][(s.tip+s.idx)%TIPS.ru.length]+'</div>';
+  if(s.idx>=s.finalIdx)h+='<p class="note">'+tr(UI.sessDone)+'</p>';
+  h+='<div class="actions">'+(s.idx>0?'<button class="btn ghost" data-act="sprev">'+tr(UI.prev)+'</button>':'')+(s.idx<s.finalIdx?'<button class="btn" data-act="snext">'+tr(UI.next)+'</button>':(s.idx===s.finalIdx&&s.steps.length>s.finalIdx+1?'<button class="btn ghost" data-act="snext">'+tr(UI.stBonus)+'</button>':'')+(WINTER?'<button class="btn" data-act="sfinish">'+(S.lang==="ru"?"Закончить занятие":"Finish the session")+'</button>':''))+'<button class="btn ghost" data-act="snew" style="margin-left:auto">'+tr(UI.newSession)+'</button></div>';
   return h;
 }
 
 function finaleHTML(){var ru=S.lang==="ru";
   return '<section class="card"><div class="finale"><div class="scene">'+nikoImg("basket","bun")+nikoImg("carrot","car")+'</div>'+
    '<h2>'+(ru?"Морковка — в корзинку!":"A carrot for the basket!")+'</h2>'+
-   '<p>'+(ru?"Занятие пройдено: разминка, два задания, подвижная игра и лёгкий финал.":"Session complete: a warm-up, two tasks, a movement game and an easy finish.")+'</p>'+harvest()+'</div></section>'+weekHTML()+
+   '<p>'+(ru?"Занятие пройдено: разминка, "+(S.age>=7?"три задания":"два задания")+", подвижная игра и лёгкий финал.":"Session complete: a warm-up, "+(S.age>=7?"three tasks":"two tasks")+", a movement game and an easy finish.")+'</p>'+harvest()+'</div></section>'+weekHTML()+
    niko("tea","На сегодня всё. Отдыхаем, а завтра будет новое занятие.","That's all for today. Time to rest — a new session tomorrow.")+
    '<p class="note">'+tr(UI.sessDone)+'</p><div class="actions"><button class="btn ghost" data-act="snew" style="margin-left:auto">'+tr(UI.newSession)+'</button></div>'}
 function render(){
@@ -1680,7 +1691,7 @@ $("app").addEventListener("click",function(e){
    case "move":S.moveId=v;S.moveSeed=newSeed();render();break;
    case "move-new":S.moveSeed=newSeed();render();break;
    case "step":S.session.idx=+v;enterStep();render();break;
-   case "snext":S.session.idx=Math.min(4,S.session.idx+1);enterStep();render();window.scrollTo&&window.scrollTo(0,0);break;
+   case "snext":S.session.idx=Math.min(S.session.steps.length-1,S.session.idx+1);enterStep();render();window.scrollTo&&window.scrollTo(0,0);break;
    case "sprev":S.session.idx=Math.max(0,S.session.idx-1);enterStep();render();break;
    case "snew":buildSession();render();break;
    case "sfinish":markDay();if(!S.session.done){S.session.done=true;S.session.fresh=true;store.set("nz-carrots",String(carrots()+1))}stopStream();render();window.scrollTo&&window.scrollTo(0,0);break;
