@@ -242,6 +242,7 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(22px,4vw,30px);mar
 .dtext{font-size:20px;font-weight:600;letter-spacing:.04em;margin:0;font-variant-numeric:tabular-nums;word-spacing:6px}
 .sheet .dsvg .gl{stroke:#bbb}.sheet .dsvg .gdot{fill:#111}.sheet .dsvg .gpath{stroke:#111}
 .sheet .tsvg .tedge{stroke:#111}.sheet .tsvg .tin{stroke:#fff}.sheet .tsvg .tdash{stroke:#777}.sheet .tsvg .tstart,.sheet .tsvg .tend{fill:#111}
+.dotsvg .dstart{fill:none;stroke:var(--accent);stroke-width:3}.sheet .dotsvg .dstart{stroke:#111;stroke-width:2.2}
 .sheet .dotsvg .ddot{fill:#111}.sheet .dotsvg .dline{stroke:#111}
 .sheet .mcell{background:#fff;border-color:#999}
 .sheet .refgrid .rcell,.sheet .rcell{background:#fff;border:1px solid #ddd}
@@ -429,7 +430,7 @@ var UI={
  openSheetNote:{ru:"Лист откроется в новой вкладке, там нажмите «Распечатать». Если кнопка «Распечатать» здесь не работает — используйте этот способ.",en:"The sheet opens in a new tab; press Print there. Use this if the Print button here does nothing.",es:"La hoja se abre en una pestaña nueva; pulsa Imprimir allí. Úsalo si el botón de imprimir de aquí no hace nada."},
  printNote:{ru:"Печать заработает, когда генератор будет встроен в сайт. Здесь показан вид листа.",en:"Printing will work once this is embedded in the website. This is a preview of the sheet.",es:"La impresión funcionará cuando esto esté integrado en la web. Esta es una vista previa de la hoja."},
  screenOnly:{ru:"Это задание работает только на экране.",en:"This activity works on screen only.",es:"Esta actividad solo funciona en pantalla."},
- start:{ru:"Начать",en:"Start",es:"Empezar"}, tapHint:{ru:"Нажимай сюда",en:"Tap here",es:"Toca aquí"},
+ start:{ru:"Начать",en:"Start",es:"Empezar"}, undoLine:{ru:"Отменить последнюю линию",en:"Undo last line",es:"Deshacer la última línea"}, eraseAll:{ru:"Стереть всё",en:"Erase all",es:"Borrar todo"}, startHint:{ru:"Кружок показывает, откуда можно начать.",en:"The ring shows where you can start.",es:"El círculo marca por dónde puedes empezar."}, dotsLegend:{ru:"Пунктиром показаны пропущенные линии, цветом ошибки — лишние.",en:"Dashed lines are the ones you missed; the error colour marks extra lines.",es:"Las líneas de puntos son las que faltan; el color de error marca las que sobran."}, doneBad:{ru:"Готово! Посмотри на результат: что можно поправить в следующий раз.",en:"Done! Have a look at the result: what could be better next time.",es:"¡Listo! Mira el resultado: qué se puede mejorar la próxima vez."}, doneNeutral:{ru:"Готово! Вот что получилось.",en:"Done! Here is what you got.",es:"¡Listo! Esto es lo que ha salido."}, tapHint:{ru:"Нажимай сюда",en:"Tap here",es:"Toca aquí"},
  cross:{ru:"Зачеркнуть",en:"Cross out",es:"Tacha"}, circle:{ru:"Обвести",en:"Circle",es:"Rodea con un círculo"},
  dot:{ru:"Точка",en:"Dot",es:"Punto"}, vline:{ru:"Палочка",en:"Line",es:"Raya"}, check:{ru:"Галочка",en:"Tick",es:"Marca"},
  next:{ru:"Дальше →",en:"Next →",es:"Siguiente →"}, prev:{ru:"← Назад",en:"← Back",es:"← Atrás"}, newSession:{ru:"Собрать другое занятие",en:"Build another session",es:"Crear otra sesión"},
@@ -810,13 +811,13 @@ TYPES.dots={
  age:[0,0,0,1,2,3,3,4,4,5],
  build:function(lv,r){
   var P=[{n:3,k:2},{n:3,k:4},{n:4,k:5,diag:1},{n:4,k:7,diag:1},{n:5,k:9,diag:1},{n:5,k:8,diag:1,mirror:1}][lv],n=P.n;
-  var segs={},cur=Math.floor(r()*n*n),list=[],g=0;
+  var segs={},cur=Math.floor(r()*n*n),start0=cur,list=[],g=0;
   function key(a,b){return Math.min(a,b)+"-"+Math.max(a,b)}
   while(list.length<P.k&&g++<500){var x=cur%n,y=Math.floor(cur/n),nb=[];
    [[1,0],[-1,0],[0,1],[0,-1]].concat(P.diag?[[1,1],[-1,-1],[1,-1],[-1,1]]:[]).forEach(function(d){var nx=x+d[0],ny=y+d[1];if(nx>=0&&ny>=0&&nx<n&&ny<n){var j=ny*n+nx;if(!segs[key(cur,j)])nb.push(j)}});
    if(!nb.length){cur=Math.floor(r()*n*n);continue}var nx2=pick(r,nb);segs[key(cur,nx2)]=1;list.push(key(cur,nx2));cur=nx2}
   var target=list.map(function(k){if(!P.mirror)return k;var p=k.split("-").map(Number).map(function(i){var x=i%n,y=Math.floor(i/n);return y*n+(n-1-x)});return key(p[0],p[1])});
-  return {kind:"dots",n:n,sample:list,target:target,mirror:!!P.mirror,
+  return {kind:"dots",n:n,start:start0,sample:list,target:target,mirror:!!P.mirror,
    rule:function(l){return P.mirror?(LX(l,"Нарисуй узор зеркально, как отражение в зеркале. Нажимай на две соседние точки, чтобы провести линию.","Draw the pattern as a mirror image. Tap two neighbouring dots to draw a line.","Dibuja el patrón al revés, como el reflejo en un espejo. Toca dos puntos vecinos para trazar una línea.")):(LX(l,"Посмотри на образец и нарисуй такой же узор. Нажимай на две соседние точки, чтобы провести линию.","Look at the sample and draw the same pattern. Tap two neighbouring dots to draw a line.","Mira el modelo y dibuja el mismo patrón. Toca dos puntos vecinos para trazar una línea."))},
    printRule:function(l){return P.mirror?(LX(l,"Нарисуй узор на пустых точках зеркально.","Draw the pattern on the empty dots as a mirror image.","Dibuja el patrón al revés, como en un espejo, sobre los puntos vacíos.")):(LX(l,"Срисуй узор на пустых точках.","Copy the pattern onto the empty dots.","Copia el patrón sobre los puntos vacíos."))},samples:""};
  }
@@ -1247,13 +1248,13 @@ function startTask(id,lv,seed,mode){
   var task=TYPES[id].build(lv,rng(seed*31+lv*7+(S.alpha==="en"?3:0)+id.length*101),{alpha:S.alpha});
   RT={id:id,lv:lv,seed:seed,task:task,mode:mode,marks:[],checked:false,t0:0,tool:task.tools?task.tools[0]:null,next:0,errors:0,pairs:{},sel:null,answers:{},st:null};
   if(task.kind==="cells")RT.marks=task.items.map(function(){return null});
-  RT.assign={};RT.board={};RT.pal=task.objs?task.objs[0].s:null;RT.segs=[];RT.dsel=null;RT.strokes=[];RT.step=0;
+  RT.assign={};RT.board={};RT.pal=task.objs?task.objs[0].s:null;RT.segs=[];RT.dhist=[];RT.dsel=null;RT.strokes=[];RT.step=0;
   RT.mem={r:0,phase:"ready",score:[],pick:[],timer:null};
 }
 function stopStream(){if(RT&&RT.st&&RT.st.timer){clearTimeout(RT.st.timer);RT.st.timer=null}if(RT&&RT.mem&&RT.mem.timer){clearTimeout(RT.mem.timer);RT.mem.timer=null}}
 
 function fmtTime(ms){var s=Math.round(ms/1000);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")}
-function stats(list){markDay();return niko("cheer","Готово! Задание пройдено до конца.","Done! You finished the whole task.",1,"¡Listo! Has terminado toda la tarea.")+'<div class="results">'+list.map(function(x){return '<div class="stat'+(x[2]?" ok":"")+'"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>'}).join("")+'</div>'}
+function stats(list,good){markDay();var nk=good===true?niko("cheer","Готово! Задание пройдено до конца.","Done! You finished the whole task.",1,"¡Listo! Has terminado toda la tarea."):(good===false?niko("encourage",tr(UI.doneBad),tr(UI.doneBad),1,tr(UI.doneBad)):niko("encourage",tr(UI.doneNeutral),tr(UI.doneNeutral),1,tr(UI.doneNeutral)));return nk+'<div class="results">'+list.map(function(x){return '<div class="stat'+(x[2]?" ok":"")+'"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>'}).join("")+'</div>'}
 
 function screenCols(c){var w=Math.min(window.innerWidth,980)-70;return Math.min(c,Math.max(4,Math.floor(w/44)))}
 
@@ -1277,22 +1278,22 @@ function renderTaskBody(){
       h+='<button class="cell'+(t.big?" big":"")+res+'" data-act="cell" data-i="'+i+'">'+s+'<span class="mark">'+(m?MARK[m]:"")+'</span></button>'});
     h+='</div>';
     if(RT.checked){var ok=0,miss=0,wr=0,tot=0;t.expect.forEach(function(e,i){var m=RT.marks[i];if(e)tot++;if(e&&m===e)ok++;else if(e&&!m)miss++;else if(m&&m!==e)wr++});
-      h+=stats([[tr(UI.found),ok+" / "+tot,1],[tr(UI.missed),miss],[tr(UI.wrong),wr],[tr(UI.time),fmtTime(RT.elapsed)]])+'<p class="note">'+(miss+wr?tr(UI.legend):tr(UI.great))+'</p>'}
+      h+=stats([[tr(UI.found),ok+" / "+tot,1],[tr(UI.missed),miss],[tr(UI.wrong),wr],[tr(UI.time),fmtTime(RT.elapsed)]],miss+wr===0)+'<p class="note">'+(miss+wr?tr(UI.legend):tr(UI.great))+'</p>'}
   }
   else if(t.kind==="order"){
     h+='<div class="grid" style="--cols:'+t.cols+';max-width:'+(t.cols*84)+'px">'+t.cells.map(function(c,i){return '<button class="cell big'+(c.ord<RT.next?" done":"")+'" data-act="ord" data-i="'+i+'">'+c.html+'</button>'}).join("")+'</div>';
     h+='<div class="bar"><i style="width:'+(100*RT.next/t.total)+'%"></i></div>';
-    if(RT.checked)h+=stats([[tr(UI.time),fmtTime(RT.elapsed),1],[tr(UI.wrong),RT.errors]]);
+    if(RT.checked)h+=stats([[tr(UI.time),fmtTime(RT.elapsed),1],[tr(UI.wrong),RT.errors]],!RT.errors);
   }
   else if(t.kind==="pattern"){
     t.rows.forEach(function(row,ri){var a=RT.answers[ri];
       h+='<div class="prow"><div class="pseq">'+row.seq.map(function(x){return boxed(x)}).join("")+'<span class="blank'+(a!=null?" ok":"")+'">'+(a!=null?'<span class="box">'+row.ansHtml+'</span>':'')+'</span></div>';
       if(a==null)h+='<div class="popts">'+row.opts.map(function(o,k){return '<button data-act="opt" data-r="'+ri+'" data-k="'+k+'">'+o+'</button>'}).join("")+'</div>';
       h+='</div>'});
-    if(RT.checked)h+=stats([[tr(UI.found),t.rows.length+" / "+t.rows.length,1],[tr(UI.wrong),RT.errors],[tr(UI.time),fmtTime(RT.elapsed)]]);
+    if(RT.checked)h+=stats([[tr(UI.found),t.rows.length+" / "+t.rows.length,1],[tr(UI.wrong),RT.errors],[tr(UI.time),fmtTime(RT.elapsed)]],!RT.errors);
   }
   else if(t.kind==="lines"){h+=linesSVG(t,false);
-    if(RT.checked){var c=0;for(var i=0;i<t.n;i++)if(RT.pairs[i]===t.perm[i])c++;h+=stats([[tr(UI.found),c+" / "+t.n,1],[tr(UI.time),fmtTime(RT.elapsed)]])}
+    if(RT.checked){var c=0;for(var i=0;i<t.n;i++)if(RT.pairs[i]===t.perm[i])c++;h+=stats([[tr(UI.found),c+" / "+t.n,1],[tr(UI.time),fmtTime(RT.elapsed)]],c===t.n)}
   }
   else if(t.kind==="stream"){h+=streamStage();}
   else if(t.kind==="quiz"){
@@ -1300,40 +1301,41 @@ function renderTaskBody(){
       h+='<div class="prow">'+q.q.replace("{{B}}",'<span class="mcell blank'+(a!=null?" ok":"")+'">'+(a!=null?q.ansHtml:"")+'</span>');
       if(a==null)h+='<div class="popts">'+q.opts.map(function(o,k){return '<button data-act="qopt" data-r="'+qi+'" data-k="'+k+'">'+o+'</button>'}).join("")+'</div>';
       h+='</div>'});
-    if(RT.checked)h+=stats([[tr(UI.found),t.items.length+" / "+t.items.length,1],[tr(UI.wrong),RT.errors],[tr(UI.time),fmtTime(RT.elapsed)]]);
+    if(RT.checked)h+=stats([[tr(UI.found),t.items.length+" / "+t.items.length,1],[tr(UI.wrong),RT.errors],[tr(UI.time),fmtTime(RT.elapsed)]],!RT.errors);
   }
   else if(t.kind==="sort"){
     var pool=t.items.map(function(it,i){return RT.assign[i]==null?'<button class="sitem'+(RT.sel===i?" sel":"")+'" data-act="sitem" data-i="'+i+'">'+it.html+'</button>':''}).join("");
     h+='<div class="spool">'+(pool||'<span class="note">'+tr(UI.allSorted)+'</span>')+'</div>';
     h+='<div class="bins">'+t.bins.map(function(lab,b){return '<div class="bin" role="button" tabindex="0" data-act="sbin" data-b="'+b+'"><div class="binlab">'+lab+'</div><div class="binitems">'+
       t.items.map(function(it,i){if(RT.assign[i]!==b)return "";var bad=RT.checked&&it.g!==b;return '<button class="sitem small'+(bad?" bad":"")+(RT.sel===i?" sel":"")+'" data-act="sitem" data-i="'+i+'">'+it.html+'</button>'}).join("")+'</div></div>'}).join("")+'</div>';
-    if(RT.checked){var okc=0;t.items.forEach(function(it,i){if(RT.assign[i]===it.g)okc++});h+=stats([[tr(UI.found),okc+" / "+t.items.length,1],[tr(UI.time),fmtTime(RT.elapsed)]])}
+    if(RT.checked){var okc=0;t.items.forEach(function(it,i){if(RT.assign[i]===it.g)okc++});h+=stats([[tr(UI.found),okc+" / "+t.items.length,1],[tr(UI.time),fmtTime(RT.elapsed)]],okc===t.items.length)}
   }
   else if(t.kind==="mem")h+=memStage();
   else if(t.kind==="dict"){
     h+='<div class="chiprow">'+t.cmds.map(function(c,i){var cur=RT.step<t.units.length&&t.ci[RT.step]===i;var past=RT.step>=t.units.length||t.ci[RT.step]>i;return '<span class="'+(cur?"hl":"")+(past?" past":"")+'">'+c.n+ARR[c.d]+'</span>'}).join("")+'</div>';
     h+=dictSVG(t,false);
     if(RT.step<t.units.length)h+='<div class="arrows">'+["l","u","d","r"].map(function(d){return '<button data-act="arr" data-v="'+d+'" aria-label="'+d+'">'+ARR[d]+'</button>'}).join("")+'</div>';
-    else h+=stats([[tr(UI.wrong),RT.errors,!RT.errors],[tr(UI.time),fmtTime(RT.elapsed)]]);
+    else h+=stats([[tr(UI.wrong),RT.errors,!RT.errors],[tr(UI.time),fmtTime(RT.elapsed)]],!RT.errors);
   }
   else if(t.kind==="place"){
     h+='<ol class="mlist">'+t.steps(L,false).map(function(s){return '<li>'+s+'</li>'}).join("")+'</ol>';
     h+='<div class="grid pboard" style="--cols:'+t.n+'">'+range(t.n*t.n).map(function(i){var s=RT.board[i],res="";
       if(RT.checked){var exp=t.objs.filter(function(o){return o.y*t.n+o.x===i})[0];if(exp&&s!==exp.s)res=" r-miss";else if(s&&(!exp||exp.s!==s))res=" r-wrong"}
       return '<button class="cell'+res+'" data-act="pcell" data-i="'+i+'">'+(s?fig({s:s,c:SHCOL[s]}):"")+'</button>'}).join("")+'</div>';
-    if(RT.checked){var okp=t.objs.filter(function(o){return RT.board[o.y*t.n+o.x]===o.s}).length;h+=stats([[tr(UI.found),okp+" / "+t.objs.length,1],[tr(UI.time),fmtTime(RT.elapsed)]])}
+    if(RT.checked){var okp=t.objs.filter(function(o){return RT.board[o.y*t.n+o.x]===o.s}).length;h+=stats([[tr(UI.found),okp+" / "+t.objs.length,1],[tr(UI.time),fmtTime(RT.elapsed)]],okp===t.objs.length)}
   }
   else if(t.kind==="dots"){
-    h+='<div class="dotpair"><div><div class="pairlabel">'+tr(UI.sample)+'</div>'+dotsSVG(t,t.sample,false,false)+'</div><div><div class="pairlabel">'+tr(UI.yours)+'</div>'+dotsSVG(t,RT.segs,true,false)+'</div></div>';
+    h+='<div class="dotpair"><div><div class="pairlabel">'+tr(UI.sample)+'</div>'+dotsSVG(t,t.sample,false,false,"s")+'</div><div><div class="pairlabel">'+tr(UI.yours)+'</div>'+dotsSVG(t,RT.segs,true,false,"y")+'</div></div><p class="note">'+tr(UI.startHint)+'</p>';
     if(RT.checked){var tg=t.target,ok2=tg.filter(function(k){return RT.segs.indexOf(k)>=0}).length,ex2=RT.segs.filter(function(k){return tg.indexOf(k)<0}).length;
-      h+=stats([[tr(UI.found),ok2+" / "+tg.length,1],[tr(UI.extraLines),ex2],[tr(UI.time),fmtTime(RT.elapsed)]])}
+      var dgood=ok2===tg.length&&ex2===0;h+=stats([[tr(UI.found),ok2+" / "+tg.length,1],[tr(UI.extraLines),ex2],[tr(UI.time),fmtTime(RT.elapsed)]],dgood)+'<p class="note">'+(dgood?tr(UI.great):tr(UI.dotsLegend))+'</p>'}
   }
   else if(t.kind==="trace"){
     h+=traceSVG(t,false);
-    if(RT.checked){var ev=evalTrace(t);h+=stats([[tr(UI.accuracy),ev.acc+"%",1],[tr(UI.covered),ev.cov+"%"]])}
+    if(RT.checked){var ev=evalTrace(t);h+=stats([[tr(UI.accuracy),ev.acc+"%",1],[tr(UI.covered),ev.cov+"%"]],null)}
   }
   var act='<div class="actions">';
   var needDone=["cells","lines","place","dots","sort","trace"].indexOf(t.kind)>=0&&!RT.checked;
+  if(t.kind==="dots"&&!RT.checked)act+='<button class="btn ghost" data-act="dundo"'+(RT.segs.length?'':' disabled')+'>'+tr(UI.undoLine)+'</button><button class="btn ghost" data-act="dclear"'+(RT.segs.length?'':' disabled')+'>'+tr(UI.eraseAll)+'</button>';
   if(needDone)act+='<button class="btn" data-act="done">'+tr(UI.done)+'</button>';
   act+='<button class="btn'+(needDone?" ghost":"")+'" data-act="new">'+tr(UI.newTask)+'</button>';
   if(t.kind!=="stream")act+='<button class="btn ghost" data-act="again">'+tr(UI.again)+'</button>';
@@ -1362,7 +1364,7 @@ function streamStage(){
   var st=RT.st,t=RT.task;
   if(!st)return '<button class="stage" data-act="stream-start"><span class="msg">'+tr(UI.start)+'</span></button>';
   if(st.over){var hits=0,miss=0,fa=0,go=0;t.go.forEach(function(g,i){if(g){go++;if(st.resp[i])hits++;else miss++}else if(st.resp[i])fa++});
-    return stats([[tr(UI.found),hits+" / "+go,1],[tr(UI.missed),miss],[tr(UI.falseTaps),fa]]);}
+    return stats([[tr(UI.found),hits+" / "+go,1],[tr(UI.missed),miss],[tr(UI.falseTaps),fa]],miss===0&&fa===0);}
   var banner=t.switchAt>=0&&st.i>=t.switchAt?'<span class="banner">'+tr(t.switchText)+'</span>':'';
   return '<button class="stage'+(st.flash?" flash":"")+'" data-act="tap">'+banner+(st.show?shp(t.items[st.i],{color:SHCOL[t.items[st.i]]}):'')+'</button><div class="bar"><i style="width:'+(100*st.i/t.items.length)+'%"></i></div>';
 }
@@ -1389,12 +1391,14 @@ function dictSVG(t,printing,motifOnly){
   return s+'</svg>'}
 
 /* ---- точки ---- */
-function dotsSVG(t,segs,work,printing){
+function dotsSVG(t,segs,work,printing,role){
   var n=t.n,c=60,pad=26,S2=(n-1)*c+pad*2,s='<svg class="dotsvg" viewBox="0 0 '+S2+' '+S2+'">';
   function xy(i){return[pad+(i%n)*c,pad+Math.floor(i/n)*c]}
   segs.forEach(function(k){var p=k.split("-").map(Number),a=xy(p[0]),b=xy(p[1]),bad=work&&RT.checked&&t.target.indexOf(k)<0;
     s+='<line x1="'+a[0]+'" y1="'+a[1]+'" x2="'+b[0]+'" y2="'+b[1]+'" class="'+(bad?"dline bad":"dline")+'"/>'});
   if(work&&RT.checked)t.target.forEach(function(k){if(segs.indexOf(k)<0){var p=k.split("-").map(Number),a=xy(p[0]),b=xy(p[1]);s+='<line x1="'+a[0]+'" y1="'+a[1]+'" x2="'+b[0]+'" y2="'+b[1]+'" class="dline miss"/>'}});
+  var st0=role==="s"?t.start:(role==="y"?(t.mirror?Math.floor(t.start/n)*n+(n-1-t.start%n):t.start):null);
+  if(st0!=null&&st0!==undefined){var ps0=xy(st0);s+='<circle cx="'+ps0[0]+'" cy="'+ps0[1]+'" r="13" class="dstart"/>'}
   for(var i=0;i<n*n;i++){var p2=xy(i);s+=(work?'<g data-act="dot" data-i="'+i+'" style="cursor:pointer"><circle cx="'+p2[0]+'" cy="'+p2[1]+'" r="22" fill="transparent"/>':'<g>')+
     '<circle cx="'+p2[0]+'" cy="'+p2[1]+'" r="'+(work&&RT.dsel===i?9:5.5)+'" class="'+(work&&RT.dsel===i?"ddot sel":"ddot")+'"/></g>'}
   return s+'</svg>'}
@@ -1430,7 +1434,7 @@ function bindTrace(){
 /* ---- память ---- */
 function memStage(){
   var t=RT.task,m=RT.mem,R=t.rounds[m.r];
-  if(m.phase==="final"){var ok=m.score.filter(Boolean).length;return stats([[tr(UI.rounds),ok+" / "+t.rounds.length,1]])+'<p class="note">'+(ok===t.rounds.length?tr(UI.great):tr(UI.memNote))+'</p>'}
+  if(m.phase==="final"){var ok=m.score.filter(Boolean).length;return stats([[tr(UI.rounds),ok+" / "+t.rounds.length,1]],ok===t.rounds.length)+'<p class="note">'+(ok===t.rounds.length?tr(UI.great):tr(UI.memNote))+'</p>'}
   var head='<div class="memhead"><span>'+tr(UI.round)+' '+(m.r+1)+' / '+t.rounds.length+'</span></div>';
   if(m.phase==="ready")return head+'<button class="stage" data-act="mstart"><span class="msg">'+tr(UI.start)+'</span></button>';
   var body="";
@@ -1500,7 +1504,7 @@ function renderSheet(t,rule){
   else if(t.kind==="quiz")h+=t.items.map(function(q){var ab=S.lang==="ru"?["а","б","в","г"]:["a","b","c","d"];return '<div class="prow qrow">'+q.q.replace("{{B}}",'<span class="mcell blank"></span>')+'<div class="popts">'+q.opts.map(function(o,k){return '<span class="qopt"><b>'+ab[k]+'</b>'+o+'</span>'}).join("")+'</div></div>'}).join("");
   else if(t.kind==="dict")h+='<p class="dtext">'+t.text+'</p>'+dictSVG(t,true);
   else if(t.kind==="place")h+='<ol class="mlist">'+t.steps(S.lang,true).map(function(s){return '<li>'+s+'</li>'}).join("")+'</ol><div class="sgrid pboard" style="--cols:'+t.n+';max-width:'+(t.n*110)+'px;margin:0 auto;width:100%">'+range(t.n*t.n).map(function(){return '<div class="scell boxed"></div>'}).join("")+'</div>';
-  else if(t.kind==="dots")h+='<div class="dotpair">'+dotsSVG(t,t.sample,false,true)+dotsSVG(t,[],false,true)+'</div>';
+  else if(t.kind==="dots")h+='<div class="dotpair">'+dotsSVG(t,t.sample,false,true,"s")+dotsSVG(t,[],false,true,"y")+'</div>';
   else if(t.kind==="trace")h+=traceSVG(t,true);
   else if(t.kind==="hatch")h+=hatchSheet(t);
   else if(t.kind==="gridpat")h+=gridpatSheet(t);
@@ -1689,8 +1693,10 @@ $("app").addEventListener("click",function(e){
    case "dot":if(RT.checked)return;if(!RT.t0)RT.t0=Date.now();var di=+b.dataset.i,n0=RT.task.n;
      if(RT.dsel==null||RT.dsel===di){RT.dsel=RT.dsel===di?null:di}
      else{var ax=RT.dsel%n0,ay=Math.floor(RT.dsel/n0),bx=di%n0,by=Math.floor(di/n0);
-       if(Math.abs(ax-bx)<=1&&Math.abs(ay-by)<=1){var sk=Math.min(RT.dsel,di)+"-"+Math.max(RT.dsel,di),sx2=RT.segs.indexOf(sk);if(sx2>=0)RT.segs.splice(sx2,1);else RT.segs.push(sk);RT.dsel=di}else RT.dsel=di}
+       if(Math.abs(ax-bx)<=1&&Math.abs(ay-by)<=1){var sk=Math.min(RT.dsel,di)+"-"+Math.max(RT.dsel,di),sx2=RT.segs.indexOf(sk);if(sx2>=0){RT.segs.splice(sx2,1);var hi_=RT.dhist.indexOf(sk);if(hi_>=0)RT.dhist.splice(hi_,1)}else{RT.segs.push(sk);RT.dhist.push(sk)}RT.dsel=di}else RT.dsel=di}
      refreshTask();break;
+   case "dundo":if(RT.checked)return;var lk_=RT.dhist.pop();if(lk_!=null){var ix_=RT.segs.indexOf(lk_);if(ix_>=0)RT.segs.splice(ix_,1)}RT.dsel=null;refreshTask();break;
+   case "dclear":if(RT.checked)return;RT.segs=[];RT.dhist=[];RT.dsel=null;refreshTask();break;
    case "arr":var T0=RT.task;if(RT.step>=T0.units.length)return;if(!RT.t0)RT.t0=Date.now();if(v===T0.units[RT.step]){RT.step++;if(RT.step===T0.units.length)RT.elapsed=Date.now()-RT.t0;refreshTask()}else{RT.errors++;wobble(b)}break;
    case "age":S.age=+v;store.set("nz-age",v);S.session=null;if(S.cur)startTask(S.cur,levelFor(S.cur,S.age,S.diff),newSeed(),modeFor(S.cur));render();break;
    case "diff":S.diff=+v;S.session=null;if(S.cur)startTask(S.cur,levelFor(S.cur,S.age,S.diff),newSeed(),modeFor(S.cur));render();break;
