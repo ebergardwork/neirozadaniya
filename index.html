@@ -35,7 +35,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16p
 .nz button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .nz button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .nz h1,.nz h2,.nz h3{margin:0;text-wrap:balance;line-height:1.2}
-.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:nowrap}
+.top>div:first-child{min-width:0}
 .eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
 h1{font-family:var(--display);font-weight:700;font-size:clamp(22px,4vw,30px);margin-top:4px!important}
 .seg{display:inline-flex;flex-wrap:wrap;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:3px;gap:2px}
@@ -272,13 +273,15 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(22px,4vw,30px);mar
 .sym img.pic.sm{transform:scale(.6)}
 .calmbtn{border:1.5px solid var(--line);background:var(--paper);border-radius:12px;padding:6px 12px;min-height:40px;font-size:14px}
 .calmbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.toprt{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.langmenu{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.toprt{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;flex:none}
+@media(max-width:480px){.top{flex-wrap:wrap}.toprt{margin-left:auto}}
+.langmenu{position:relative;display:flex;align-items:center}
 .langbtn{border:1.5px solid var(--line);background:var(--paper);border-radius:12px;padding:6px 12px;min-height:40px;font-size:14px;font-weight:600}
 .langbtn[aria-expanded="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .langrow[hidden]{display:none!important}
-.langrow{animation:langIn .18s ease-out}
-@keyframes langIn{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+.langrow{position:absolute;top:calc(100% + 6px);right:0;z-index:40;display:flex;flex-direction:column;align-items:stretch;gap:2px;min-width:100%;padding:6px;border-radius:14px;background:var(--paper);border:1.5px solid var(--line);box-shadow:0 8px 24px rgba(30,40,70,.18);animation:langIn .18s ease-out}
+.langrow .seg-b,.langrow button{text-align:left;white-space:nowrap}
+@keyframes langIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.langrow{animation:none}}
 .niko{display:flex;align-items:flex-end;gap:12px;margin:2px 0 4px}
 .niko img{height:118px;width:auto;flex:none;transform-origin:50% 100%}
